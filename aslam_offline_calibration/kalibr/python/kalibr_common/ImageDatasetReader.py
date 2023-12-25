@@ -206,3 +206,71 @@ class BagImageDatasetReader(object):
         "Unsupported Image Type: '{}'\nSupported are: "
         "mv_cameras/ImageSnappyMsg, sensor_msgs/CompressedImage, sensor_msgs/Image".format(data._type))
     return (timestamp, img_data)
+
+
+class BinImageDatasetReaderIterator:
+  def __init__(self, dataset, indices=None):
+    self.dataset = dataset
+    if indices is None:
+      self.indices = np.arange(dataset.numImages())
+    else:
+      self.indices = indices
+    self.iter = self.indices.__iter__()
+
+  def __iter__(self):
+    return self
+
+  def next(self):
+    # required for python 2.x compatibility
+    idx = next(self.iter)
+    return self.dataset.getImage(idx)
+
+  def __next__(self):
+    idx = next(self.iter)
+    return self.dataset.getImage(idx)
+
+
+class BinImageDatasetReader:
+  def __init__(self, binfile, timestampfile, resolution, bin_from_to_in_seconds, bin_freq, perform_synchronization=False):
+    self.binfile = binfile
+    self.timestampfile = timestampfile
+    self.perform_synchronization = perform_synchronization
+    self.timestamp = np.loadtxt(self.timestampfile)
+    self.topic = '/cam0/image_raw'
+    self.indices = np.arange(len(self.timestamp))
+    self.w, self.h, self.c = resolution # 1920, 1200, 1
+    self.size_per_image = self.w * self.h * self.c
+    with open(self.binfile, 'rb') as f:
+      f.seek(0, 2)
+      total_size = f.tell() // np.dtype(np.uint8).itemsize
+      if total_size % self.size_per_image != 0:
+        raise ValueError(f'{total_size=} cannot be divided by {self.size_per_image=}')
+      self.num_images = total_size // self.size_per_image
+      f.seek(0, 0)
+    if len(self.timestamp) != self.num_images:
+      raise ValueError(f'{len(self.timestamp)=} and {self.num_images} are not equal!')
+
+  def __iter__(self):
+    # Reset the bag reading
+    return self.readDataset()
+
+  def readDataset(self):
+    return BinImageDatasetReaderIterator(self, self.indices)
+
+  def getImage(self, idx):
+    ts = self.timestamp[idx]
+    ts_in_sec = int(ts // (10**9))
+    ts_in_ns = int(ts % (ts_in_sec))
+    if self.perform_synchronization:
+        timestamp = acv.Time(self.timestamp_corrector.getLocalTime(ts_in_sec))
+    else:
+        timestamp = acv.Time( ts_in_sec, ts_in_ns )
+    with open(self.binfile, 'rb') as f:
+      f.seek(idx * self.size_per_image)
+      data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
+      return (timestamp, data)
+  
+  def numImages(self):
+    return self.num_images
+
+

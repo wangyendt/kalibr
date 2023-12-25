@@ -27,6 +27,14 @@ def initCameraBagDataset(bagfile, topic, from_to, freq, perform_synchronization)
     print("\tNumber of images: {0}".format(len(reader.index)))
     return reader
 
+def initCameraBinDataset(binfile, timestampfile, topic, from_to, freq, perform_synchronization):
+    print("Initializing camera rosbag dataset reader:")
+    print("\tDataset:          {0}".format(binfile))
+    print("\tTopic:            {0}".format(topic))
+    reader = kc.BinImageDatasetReader(binfile, timestampfile, (1920, 1200, 1), bin_from_to_in_seconds=from_to, bin_freq=freq, perform_synchronization=perform_synchronization)
+    print("\tNumber of images: {0}".format(len(reader.indices)))
+    return reader
+
 def initImuBagDataset(bagfile, topic, from_to=None, perform_synchronization=False):
     print("Initializing imu rosbag dataset reader:")
     print("\tDataset:          {0}".format(bagfile))
@@ -34,6 +42,15 @@ def initImuBagDataset(bagfile, topic, from_to=None, perform_synchronization=Fals
     reader = kc.BagImuDatasetReader(bagfile, topic, bag_from_to=from_to, \
                                       perform_synchronization=perform_synchronization)
     print("\tNumber of messages: {0}".format(len(reader.index)))
+    return reader
+
+def initImuBinDataset(imufile, topic, from_to=None, perform_synchronization=False):
+    print("Initializing imu rosbag dataset reader:")
+    print("\tDataset:          {0}".format(imufile))
+    print("\tTopic:            {0}".format(topic))
+    reader = kc.BinImuDatasetReader(imufile, topic, bag_from_to=from_to, \
+                                      perform_synchronization=perform_synchronization)
+    print("\tNumber of messages: {0}".format(len(reader.indices)))
     return reader
 
 
@@ -419,8 +436,10 @@ class IccCameraChain():
         self.camList = []
         for camNr in range(0, chainConfig.numCameras()):
             camConfig = chainConfig.getCameraParameters(camNr)
-            dataset = initCameraBagDataset(parsed.bagfile[0], camConfig.getRosTopic(), \
-                                           parsed.bag_from_to, parsed.bag_freq, parsed.perform_synchronization)
+            # dataset = initCameraBagDataset(parsed.bagfile[0], camConfig.getRosTopic(), \
+            #                                parsed.bag_from_to, parsed.bag_freq, parsed.perform_synchronization)
+            dataset = initCameraBinDataset(parsed.binfile[0], parsed.bintimestampfile[0], camConfig.getRosTopic(), parsed.bag_from_to, parsed.bag_freq, parsed.perform_synchronization)
+
             
             #create the camera
             self.camList.append( IccCamera( camConfig, 
@@ -590,7 +609,9 @@ class IccImu(object):
         self.imuConfig = self.ImuParameters(imuConfig, imuNr)
 
         #load dataset
-        self.dataset = initImuBagDataset(parsed.bagfile[0], imuConfig.getRosTopic(), \
+        # self.dataset = initImuBagDataset(parsed.bagfile[0], imuConfig.getRosTopic(), \
+        #                                  parsed.bag_from_to, parsed.perform_synchronization)
+        self.dataset = initImuBinDataset(parsed.imufile[0], '/imu0', \
                                          parsed.bag_from_to, parsed.perform_synchronization)
         
         #statistics

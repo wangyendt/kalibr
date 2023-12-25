@@ -2,6 +2,7 @@ import rosbag
 import os
 import sm
 import numpy as np
+import pandas as pd
 import pylab as pl
 import aslam_cv as acv
 
@@ -119,5 +120,59 @@ class BagImuDatasetReader(object):
             timestamp = acv.Time( data.header.stamp.secs, data.header.stamp.nsecs )
         omega = np.array( [data.angular_velocity.x, data.angular_velocity.y, data.angular_velocity.z])
         alpha = np.array( [data.linear_acceleration.x, data.linear_acceleration.y, data.linear_acceleration.z] )
+        
+        return (timestamp, omega, alpha)
+
+
+class BinImuDatasetReaderIterator:
+    def __init__(self,dataset,indices=None):
+        self.dataset = dataset
+        if indices is None:
+            self.indices = np.arange(dataset.numMessages())
+        else:
+            self.indices = indices
+        self.iter = self.indices.__iter__()
+    def __iter__(self):
+        return self
+    def next(self):
+        # required for python 2.x compatibility
+        idx = next(self.iter)
+        return self.dataset.getMessage(idx)
+    def __next__(self):
+        idx = next(self.iter)
+        return self.dataset.getMessage(idx)
+
+class BinImuDatasetReader:
+    def __init__(self, imufile, imutopic, bag_from_to=None, perform_synchronization=False):
+        self.imufile = imufile
+        self.topic = imutopic
+        self.perform_synchronization = perform_synchronization
+        self.imu_data = pd.read_csv(self.imufile).values
+        self.indices = np.arange(len(self.imu_data))
+        self.index = next(iter(self.indices.tolist()))
+        
+    def __iter__(self):
+        # Reset the bag reading
+        return self.readDataset()
+    
+    def readDataset(self):
+        return BinImuDatasetReaderIterator(self, self.indices)
+
+    def numMessages(self):
+        return len(self.indices)
+    
+    def getMessage(self,idx):
+        data_piece = self.imu_data[idx].squeeze()
+        ts = data_piece[0]
+        ts_in_sec = int(ts // (10**9))
+        ts_in_ns = int(ts % (ts_in_sec))
+        gyro = data_piece[1:4]
+        acc = data_piece[4:7]
+        if self.perform_synchronization:
+            timestamp = acv.Time(self.timestamp_corrector.getLocalTime(ts_in_sec))
+        else:
+            timestamp = acv.Time( ts_in_sec, ts_in_ns )
+        omega = np.array( [gyro[0], gyro[1], gyro[2]])
+        alpha = np.array( [acc[0], acc[1], acc[2]] )
         
         return (timestamp, omega, alpha)

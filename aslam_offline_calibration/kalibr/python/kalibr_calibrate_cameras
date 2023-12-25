@@ -30,6 +30,13 @@ def initBagDataset(bagfile, topic, from_to, freq):
     print("\tNumber of images: {0}".format(reader.numImages()))
     return reader
 
+def initBinDataset(binfile, timestampfile, topic, from_to, freq):
+    print("\tDataset:          {0}".format(binfile))
+    print("\tTopic:            {0}".format(topic))
+    reader = kc.BinImageDatasetReader(bagfile, timestampfile, (1920, 1200, 1), bin_from_to_in_seconds=from_to, bin_freq=freq)
+    print("\tNumber of images: {0}".format(reader.numImages()))
+    return reader
+
 #available models
 cameraModels = { 'pinhole-radtan': acvb.DistortedPinhole,
                  'pinhole-equi':   acvb.EquidistantPinhole,
@@ -168,7 +175,12 @@ def main():
 
         if modelName in cameraModels:
             #open dataset 
-            dataset = initBagDataset(parsed.bagfile, topic, parsed.bag_from_to, parsed.bag_freq)
+            if parsed.bagfile:
+                dataset = initBagDataset(parsed.bagfile, topic, parsed.bag_from_to, parsed.bag_freq)
+            elif parsed.binfile:
+                dataset = initBinDataset(parsed.binfile, parsed.bintimestampfile, topic, parsed.bag_from_to, parsed.bag_freq)
+            else:
+                raise ValueError(f'at least one of bag and bin file should be provided!')
         
             #create camera
             cameraModel = cameraModels[modelName]
@@ -179,7 +191,8 @@ def main():
             observations = kc.extractCornersFromDataset(cam.dataset, cam.ctarget.detector, 
                                                         multithreading=multithreading, clearImages=False,
                                                         noTransformation=True)
-            
+            print(f'observed {len(observations)}/{len(reader.indices)} corners')
+
             #populate the database
             for obs in observations:
                 obsdb.addObservation(cam_id, obs)
