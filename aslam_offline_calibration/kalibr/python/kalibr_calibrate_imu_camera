@@ -9,6 +9,7 @@ import argparse
 import signal
 import sys
 import os
+import time
 
 # make numpy print prettier
 np.set_printoptions(suppress=True)
@@ -141,6 +142,7 @@ def main():
     signal.signal(signal.SIGINT, signal_exit)
             
     print("Initializing IMUs:")
+    ts_beginning = time.time()
     if  len(parsed.imu_yamls) == 1 and not parsed.imu_models:
         #Maintain backwards compatibility with previous interface.
         parsed.imu_models = ['calibrated']
@@ -167,11 +169,16 @@ def main():
     
     #load calibration target configuration 
     targetConfig = kc.CalibrationTargetParameters(parsed.target_yaml)
+    print(f'\033[33mInitializing IMUs elapsed {time.time() - ts_beginning: .3f}s\033[0m')
        
     print("Initializing calibration target:")
+    ts_beginning = time.time()
     targetConfig.printDetails()
+    ts_end = time.time()
+    print(f'\033[33mInitializing calibration target elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     
     print("Initializing camera chain:")
+    ts_beginning = time.time()
     chain = kc.CameraChainParameters(parsed.chain_yaml)      
     chain.printDetails()   
     camChain = sens.IccCameraChain(chain, targetConfig, parsed)
@@ -185,9 +192,10 @@ def main():
         iCal.registerImu(imu)
         if imu is not imus[0]:
             imu.findOrientationPrior(imus[0])
-
+    print(f'\033[33mInitializing camera chain elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     print("")
     print("Building the problem")
+    ts_beginning = time.time()
     iCal.buildProblem(splineOrder=6, 
                       poseKnotsPerSecond=100, 
                       biasKnotsPerSecond=50, 
@@ -202,23 +210,32 @@ def main():
                       timeOffsetPadding=parsed.timeoffset_padding,
                       verbose = parsed.verbose)
 
+    print(f'\033[33mBuilding the problem elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     print("")
     print("Before Optimization")
     print("===================")
+    ts_beginning = time.time()
     util.printErrorStatistics(iCal)
+    print(f'\033[33mBefore Optimization elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     
     print("")
     print("Optimizing...")
+    ts_beginning = time.time()
     iCal.optimize(maxIterations=parsed.max_iter, recoverCov=parsed.recover_cov)
+    print(f'\033[33mOptimizing elapsed {time.time() - ts_beginning: .3f}s\033[0m')
 
     print("")
     print("After Optimization (Results)")
     print("==================")
+    ts_beginning = time.time()
     util.printErrorStatistics(iCal)
     util.printResults(iCal, withCov=parsed.recover_cov)
+    print(f'\033[33mAfter Optimization (Results) elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     print("")
 
-    bagtag = os.path.splitext(parsed.bagfile[0])[0]
+    ts_beginning = time.time()
+    # bagtag = os.path.splitext(parsed.bagfile[0])[0]
+    bagtag = os.path.splitext(parsed.binfile[0])[0]
     yamlFilename = bagtag + "-camchain-imucam.yaml"
     iCal.saveCamChainParametersYaml(yamlFilename)
     print("Results written to:")
@@ -245,6 +262,7 @@ def main():
         util.exportPoses(iCal, filename=posesFile)
         print("  Poses written to {0}".format(posesFile))
         print("")
+    print(f'\033[33mSave everything elapsed {time.time() - ts_beginning: .3f}s\033[0m')
 
 if __name__ == "__main__":
     main()
