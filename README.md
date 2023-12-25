@@ -4,7 +4,39 @@
 [![ROS1 Ubuntu 18.04](https://github.com/ethz-asl/kalibr/actions/workflows/docker_1804_build.yaml/badge.svg)](https://github.com/ethz-asl/kalibr/actions/workflows/docker_1804_build.yaml)
 [![ROS1 Ubuntu 16.04](https://github.com/ethz-asl/kalibr/actions/workflows/docker_1604_build.yaml/badge.svg)](https://github.com/ethz-asl/kalibr/actions/workflows/docker_1604_build.yaml)
 
+## OST Calibration
+
+### 2023.12.25 Update
+
+Kalibr在进行camera-imu标定时，默认是从.bag文件中读取数据，但目前保存图像数据使用的是.bin文件，保存图像时间戳和imu数据都是用的.txt或.csv文件。为了避免不必要又耗时的格式转换，将kalibr直接从.bin、.txt、.csv中读取图像和imu数据。
+
+#### 使用方法
+
+- 先建立一个catkin workspace，把kalibr clone到其中的src文件夹
+
+- catkin_make编译kalibr
+- 修改app文件夹中的run_extrinsic_calibration_bin.sh脚本中的数据路径、kalibr路径和要校准哪个相机（0或1）
+- 运行run_extrinsic_calibration_bin.sh脚本
+
+整个过程参考下面的脚本：
+
+``` bash
+cd /path/to/catkin_workspace
+mkdir kalibr_ws && cd kalibr_ws
+mkdir src && cd src
+git clone http://172.16.46.52:7990/scm/fal/ff-kalibr.git
+cd .. && catkin_make
+cd src/ff-kalibr/app
+# 修改路径等参数
+bash ./run_extrinsic_calibration_bin.sh
+```
+
+注：一个典型的数据文件夹应该如下图所示：
+
+![image-20231225152922430](https://wangye-main-bucket.oss-cn-shenzhen.aliyuncs.com/image-20231225152922430.png)
+
 ## Introduction
+
 Kalibr is a toolbox that solves the following calibration problems:
 
 1. **Multi-Camera Calibration**: Intrinsic and extrinsic calibration of a camera-systems with non-globally shared overlapping fields of view with support for a wide range of [camera models](https://github.com/ethz-asl/kalibr/wiki/supported-models).
