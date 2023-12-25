@@ -165,7 +165,7 @@ class BinImuDatasetReader:
         data_piece = self.imu_data[idx].squeeze()
         ts = data_piece[0]
         ts_in_sec = int(ts // (10**9))
-        ts_in_ns = int(ts % (ts_in_sec))
+        ts_in_ns = int(ts % (10**9))
         gyro = data_piece[1:4]
         acc = data_piece[4:7]
         if self.perform_synchronization:

@@ -260,7 +260,7 @@ class BinImageDatasetReader:
   def getImage(self, idx):
     ts = self.timestamp[idx]
     ts_in_sec = int(ts // (10**9))
-    ts_in_ns = int(ts % (ts_in_sec))
+    ts_in_ns = int(ts % (10**9))
     if self.perform_synchronization:
         timestamp = acv.Time(self.timestamp_corrector.getLocalTime(ts_in_sec))
     else:
