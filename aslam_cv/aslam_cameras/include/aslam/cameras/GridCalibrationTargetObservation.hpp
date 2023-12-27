@@ -39,7 +39,7 @@ class GridCalibrationTargetObservation {
   };
 
   /// \brief set the image.
-  void setImage(cv::Mat image);
+  void setImage(const cv::Mat& image);
 
   /// \brief clear the image. This can be handy for saving memory.
   void clearImage();

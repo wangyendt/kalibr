@@ -183,7 +183,7 @@ bool GridCalibrationTargetObservation::imageGridPoint(
   return imagePoint(_target->gridCoordinatesToPoint(r, c), outPoint);
 }
 
-void GridCalibrationTargetObservation::setImage(cv::Mat image) {
+void GridCalibrationTargetObservation::setImage(const cv::Mat& image) {
   _image = image;
   _imRows = image.rows;
   _imCols = image.cols;
