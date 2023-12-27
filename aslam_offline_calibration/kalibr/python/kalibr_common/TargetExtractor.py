@@ -11,15 +11,14 @@ import time
 import copy
 import cv2
 
-def multicoreExtractionWrapper(detector, taskq, resultq, clearImages, noTransformation):    
+def multicoreExtractionWrapper(dataset, detector, taskq, resultq, clearImages, noTransformation):    
     while 1:
         try:
             task = taskq.get_nowait()
         except queue.Empty:
             return
         idx = task[0]
-        stamp = task[1]
-        image = task[2]
+        stamp, image = dataset.getImage(idx)
         
         if noTransformation:
             success, obs = detector.findTargetNoTransformation(stamp, np.array(image))
@@ -48,17 +47,24 @@ def extractCornersFromDataset(dataset, detector, multithreading=False, numProces
             resultq = manager.Queue()
             manager2 = multiprocessing.Manager()
             taskq = manager2.Queue()
-            
-            for idx, (timestamp, image) in enumerate(dataset.readDataset()):
-                taskq.put( (idx, timestamp, image) )
-                
+
+            ts = time.time()
+            for idx in range(dataset.numImages()):
+                taskq.put((idx,))
+            # for idx, (timestamp, image) in enumerate(dataset.readDataset()):
+            #     taskq.put( (idx, timestamp, image) )
+            print(f'\033[33mtaskq.put: {time.time() - ts : .3f}s\033[0m')
+            ts = time.time()
+
             plist=list()
             for pidx in range(0, numProcesses):
                 detector_copy = copy.copy(detector)
-                p = multiprocessing.Process(target=multicoreExtractionWrapper, args=(detector_copy, taskq, resultq, clearImages, noTransformation, ))
+                p = multiprocessing.Process(target=multicoreExtractionWrapper, args=(dataset, detector_copy, taskq, resultq, clearImages, noTransformation, ))
                 p.start()
                 plist.append(p)
-            
+            print(f'\033[33mplist.append: {time.time() - ts : .3f}s\033[0m')
+
+            ts = time.time()
             #wait for results
             last_done=0
             while 1:
@@ -72,6 +78,8 @@ def extractCornersFromDataset(dataset, detector, multithreading=False, numProces
                 last_done = done
                 time.sleep(0.5)
             resultq.put('STOP')
+            print(f'\033[33mresultq.put: {time.time() - ts : .3f}s\033[0m')
+            ts = time.time()
         except Exception as e:
             raise RuntimeError("Exception during multithreaded extraction: {0}".format(e))
         
@@ -84,6 +92,8 @@ def extractCornersFromDataset(dataset, detector, multithreading=False, numProces
             targetObservations = list(zip(*sorted(targetObservations, key=lambda tup: tup[0])))[1]
         else:
             targetObservations=[]
+        print(f'\033[33msort results{time.time() - ts : .3f}s\033[0m')
+        ts = time.time()
     
     #single threaded implementation
     else:

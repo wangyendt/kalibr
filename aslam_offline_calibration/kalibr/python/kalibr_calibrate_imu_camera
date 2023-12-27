@@ -182,9 +182,13 @@ def main():
     chain = kc.CameraChainParameters(parsed.chain_yaml)      
     chain.printDetails()   
     camChain = sens.IccCameraChain(chain, targetConfig, parsed)
+    print(f'\033[33mInitializing IccCameraChain elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    ts_beginning = time.time()
 
     #create a calibrator instance
     iCal = IccCalibrator()
+    print(f'\033[33mInitializing IccCalibrator elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    ts_beginning = time.time()
 
     #register sensors with calibrator
     iCal.registerCamChain(camChain)
@@ -192,7 +196,8 @@ def main():
         iCal.registerImu(imu)
         if imu is not imus[0]:
             imu.findOrientationPrior(imus[0])
-    print(f'\033[33mInitializing camera chain elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    print(f'\033[33mregisterCamChain / IMU elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    ts_beginning = time.time()
     print("")
     print("Building the problem")
     ts_beginning = time.time()
