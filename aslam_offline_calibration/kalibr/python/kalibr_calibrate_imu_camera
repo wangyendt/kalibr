@@ -172,10 +172,9 @@ def main():
     print(f'\033[33mInitializing IMUs elapsed {time.time() - ts_beginning: .3f}s\033[0m')
        
     print("Initializing calibration target:")
-    ts_beginning = time.time()
+    # ts_beginning = time.time()
     targetConfig.printDetails()
-    ts_end = time.time()
-    print(f'\033[33mInitializing calibration target elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    # print(f'\033[33mInitializing calibration target elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     
     print("Initializing camera chain:")
     ts_beginning = time.time()
@@ -183,21 +182,20 @@ def main():
     chain.printDetails()   
     camChain = sens.IccCameraChain(chain, targetConfig, parsed)
     print(f'\033[33mInitializing IccCameraChain elapsed {time.time() - ts_beginning: .3f}s\033[0m')
-    ts_beginning = time.time()
 
+    # ts_beginning = time.time()
     #create a calibrator instance
     iCal = IccCalibrator()
-    print(f'\033[33mInitializing IccCalibrator elapsed {time.time() - ts_beginning: .3f}s\033[0m')
-    ts_beginning = time.time()
+    # print(f'\033[33mInitializing IccCalibrator elapsed {time.time() - ts_beginning: .3f}s\033[0m')
 
+    # ts_beginning = time.time()
     #register sensors with calibrator
     iCal.registerCamChain(camChain)
     for imu in imus:
         iCal.registerImu(imu)
         if imu is not imus[0]:
             imu.findOrientationPrior(imus[0])
-    print(f'\033[33mregisterCamChain / IMU elapsed {time.time() - ts_beginning: .3f}s\033[0m')
-    ts_beginning = time.time()
+    # print(f'\033[33mregisterCamChain / IMU elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     print("")
     print("Building the problem")
     ts_beginning = time.time()
@@ -219,9 +217,9 @@ def main():
     print("")
     print("Before Optimization")
     print("===================")
-    ts_beginning = time.time()
+    # ts_beginning = time.time()
     util.printErrorStatistics(iCal)
-    print(f'\033[33mBefore Optimization elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    # print(f'\033[33mBefore Optimization elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     
     print("")
     print("Optimizing...")
@@ -232,10 +230,10 @@ def main():
     print("")
     print("After Optimization (Results)")
     print("==================")
-    ts_beginning = time.time()
+    # ts_beginning = time.time()
     util.printErrorStatistics(iCal)
     util.printResults(iCal, withCov=parsed.recover_cov)
-    print(f'\033[33mAfter Optimization (Results) elapsed {time.time() - ts_beginning: .3f}s\033[0m')
+    # print(f'\033[33mAfter Optimization (Results) elapsed {time.time() - ts_beginning: .3f}s\033[0m')
     print("")
 
     ts_beginning = time.time()

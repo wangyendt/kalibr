@@ -48,13 +48,13 @@ def extractCornersFromDataset(dataset, detector, multithreading=False, numProces
             manager2 = multiprocessing.Manager()
             taskq = manager2.Queue()
 
-            ts = time.time()
+            # ts = time.time()
             for idx in range(dataset.numImages()):
                 taskq.put((idx,))
             # for idx, (timestamp, image) in enumerate(dataset.readDataset()):
             #     taskq.put( (idx, timestamp, image) )
-            print(f'\033[33mtaskq.put: {time.time() - ts : .3f}s\033[0m')
-            ts = time.time()
+            # print(f'\033[33mtaskq.put: {time.time() - ts : .3f}s\033[0m')
+            # ts = time.time()
 
             plist=list()
             for pidx in range(0, numProcesses):
@@ -62,7 +62,7 @@ def extractCornersFromDataset(dataset, detector, multithreading=False, numProces
                 p = multiprocessing.Process(target=multicoreExtractionWrapper, args=(dataset, detector_copy, taskq, resultq, clearImages, noTransformation, ))
                 p.start()
                 plist.append(p)
-            print(f'\033[33mplist.append: {time.time() - ts : .3f}s\033[0m')
+            # print(f'\033[33mplist.append: {time.time() - ts : .3f}s\033[0m')
 
             ts = time.time()
             #wait for results

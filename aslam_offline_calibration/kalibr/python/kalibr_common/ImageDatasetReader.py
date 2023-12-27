@@ -6,6 +6,7 @@ import numpy as np
 import pylab as pl
 import aslam_cv as acv
 import sm
+import h5py
 
 
 class BagImageDatasetReaderIterator(object):
@@ -240,13 +241,18 @@ class BinImageDatasetReader:
     self.indices = np.arange(len(self.timestamp))
     self.w, self.h, self.c = resolution # 1920, 1200, 1
     self.size_per_image = self.w * self.h * self.c
-    with open(self.binfile, 'rb') as f:
-      f.seek(0, 2)
-      total_size = f.tell() // np.dtype(np.uint8).itemsize
-      if total_size % self.size_per_image != 0:
-        raise ValueError(f'{total_size=} cannot be divided by {self.size_per_image=}')
-      self.num_images = total_size // self.size_per_image
-      f.seek(0, 0)
+    with h5py.File(self.binfile, 'r') as hdf5_file:
+      width = hdf5_file.attrs['width']
+      height = hdf5_file.attrs['height']
+      channels = hdf5_file.attrs['channels']
+      self.num_images = hdf5_file.attrs['num_images']
+    # with open(self.binfile, 'rb') as f:
+    #   f.seek(0, 2)
+    #   total_size = f.tell() // np.dtype(np.uint8).itemsize
+    #   if total_size % self.size_per_image != 0:
+    #     raise ValueError(f'{total_size=} cannot be divided by {self.size_per_image=}')
+    #   self.num_images = total_size // self.size_per_image
+    #   f.seek(0, 0)
     if len(self.timestamp) != self.num_images:
       raise ValueError(f'{len(self.timestamp)=} and {self.num_images} are not equal!')
     # with open(self.binfile, 'rb') as f:
@@ -270,9 +276,13 @@ class BinImageDatasetReader:
         timestamp = acv.Time( ts_in_sec, ts_in_ns )
     # img = self.images[idx].squeeze()
     # return timestamp, img
-    with open(self.binfile, 'rb') as f:
-      f.seek(idx * self.size_per_image)
-      data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
+    # with open(self.binfile, 'rb') as f:
+    #   f.seek(idx * self.size_per_image)
+    #   data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
+    #   return timestamp, data
+    with h5py.File(self.binfile, 'r') as hdf5_file:
+      dset = hdf5_file['images']
+      data = dset[idx]
       return timestamp, data
   
   def numImages(self):
