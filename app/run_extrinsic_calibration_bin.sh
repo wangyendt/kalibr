@@ -1,6 +1,6 @@
-dataset_root=/media/psf/work/data/ost_calibration/imu_to_vpcam/mercury1222-cam2imu-fast-60hz-1
+dataset_root=/media/psf/work/data/ost_calibration/imu_to_vpcam/2023-12-21-taurus-30fps-success-1-cam0
 kalibr_dir=/home/wayne/work/code/catkin_wss/kalibr_ws
-device=mercury
+device=taurus
 which_cam=0
 
 if [[ $device == mercury ]]; then
@@ -28,10 +28,10 @@ root=$dataset_root
 target=$root/aprilgrid.yaml
 camchain_yaml=$root/cam${which_cam}-camchain.yaml
 imu_yaml=$root/imu.yaml
-bin_file=$root/${which_cam}_img_.bin
+bin_file=$root/${which_cam}_img_.h5
 bin_timestamp_file=$root/${which_cam}_save_timestamp.txt
 imu_file=$root/data.csv
 
-rosrun kalibr kalibr_calibrate_imu_camera --target $target --cam $camchain_yaml --imu $imu_yaml --binfile $bin_file --bintimestampfile $bin_timestamp_file --imufile $imu_file # --show-extraction # --bag-from-to 20 400 # --show-extraction
+rosrun kalibr kalibr_calibrate_imu_camera --target $target --cam $camchain_yaml --imu $imu_yaml --binfile $bin_file --bintimestampfile $bin_timestamp_file --imufile $imu_file # --imu-models scale-misalignment-size-effect # --show-extraction # --bag-from-to 20 400 # --show-extraction
 
 

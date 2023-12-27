@@ -20,7 +20,7 @@ if len(sys.argv) < 1:
 	exit(0)
 dataset_root = sys.argv[1]
 
-imu_file = os.path.join(dataset_root, 'mav0/imu0/data.txt')
+imu_file = os.path.join(dataset_root, 'data.txt')
 print(imu_file)
 if not os.path.exists(imu_file):
 	print('no need to transfer from taurus data to euroc data')
