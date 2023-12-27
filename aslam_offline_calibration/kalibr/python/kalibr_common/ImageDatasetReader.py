@@ -249,9 +249,9 @@ class BinImageDatasetReader:
       f.seek(0, 0)
     if len(self.timestamp) != self.num_images:
       raise ValueError(f'{len(self.timestamp)=} and {self.num_images} are not equal!')
-    with open(self.binfile, 'rb') as f:
-      data = f.read()
-      self.images = np.frombuffer(data, dtype=np.uint8).reshape((self.num_images, self.h, self.w, self.c))
+    # with open(self.binfile, 'rb') as f:
+    #   data = f.read()
+    #   self.images = np.frombuffer(data, dtype=np.uint8).reshape((self.num_images, self.h, self.w, self.c))
 
   def __iter__(self):
     # Reset the bag reading
@@ -268,12 +268,12 @@ class BinImageDatasetReader:
         timestamp = acv.Time(self.timestamp_corrector.getLocalTime(ts_in_sec))
     else:
         timestamp = acv.Time( ts_in_sec, ts_in_ns )
-    img = self.images[idx].squeeze()
-    return timestamp, img
-    # with open(self.binfile, 'rb') as f:
-    #   f.seek(idx * self.size_per_image)
-    #   data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
-    #   return (timestamp, data)
+    # img = self.images[idx].squeeze()
+    # return timestamp, img
+    with open(self.binfile, 'rb') as f:
+      f.seek(idx * self.size_per_image)
+      data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
+      return timestamp, data
   
   def numImages(self):
     return self.num_images
