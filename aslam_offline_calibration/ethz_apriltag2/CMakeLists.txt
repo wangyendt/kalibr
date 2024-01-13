@@ -6,6 +6,11 @@ add_definitions(-fPIC -O3)
 find_package(catkin REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  common_include
+)
+
+# add_definitions(-DDEBUG_APRIL)
 
 catkin_package(
   INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIRS}

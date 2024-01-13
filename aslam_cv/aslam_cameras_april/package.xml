@@ -8,6 +8,7 @@
   <license>New BSD</license>
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>common_include</build_depend>
   <build_depend>sm_python</build_depend>
   <build_depend>aslam_cameras</build_depend>
   <build_depend>ethz_apriltag2</build_depend>

@@ -4,6 +4,7 @@ project(aslam_cameras)
 ADD_DEFINITIONS(-DASLAM_USE_ROS)
 
 find_package(catkin REQUIRED COMPONENTS
+  common_include
   sm_common
   sm_eigen
   sm_boost

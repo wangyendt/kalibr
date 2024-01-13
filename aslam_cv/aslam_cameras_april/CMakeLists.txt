@@ -4,6 +4,7 @@ project(aslam_cameras_april)
 ADD_DEFINITIONS(-DASLAM_USE_ROS)
 
 find_package(catkin REQUIRED COMPONENTS
+  common_include
   sm_python
   aslam_cameras
   ethz_apriltag2
