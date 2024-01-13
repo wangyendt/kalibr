@@ -6,15 +6,16 @@ import matplotlib.pyplot as plt
 import cv2
 
 image_bin_path = r'/media/psf/work/data/ost_calibration/imu_to_vpcam/2023-12-21-taurus-30fps-success-1-cam0/0_img_.bin'
+image_bin_path = r'/media/psf/work/data/ost_calibration/imu_to_vpcam/20240104-30Hz-taurus-32_33-wearing-cam2imu_fast_shrink-test1/0_img_.bin'
 # image_bin_path = r'/Users/wayne/Documents/work/data/ost_calibration/imu_to_vpcam/0_img_.bin'
 
-w, h, c = 1920, 1200, 1
+w, h, c = 640, 400, 1
 sz = w * h * c
 
 with open(image_bin_path, 'rb') as f:
 	f.seek(0, 2)
-	sz = f.tell()
-	print(f'{(sz // np.dtype(np.uint8).itemsize)=}')
+	f_sz = f.tell()
+	print(f'{(f_sz // np.dtype(np.uint8).itemsize)=}')
 	f.seek(0, 0)
 
 with open(image_bin_path, 'rb') as f:
@@ -36,7 +37,7 @@ with open(image_bin_path, 'rb') as f:
 	# 	plt.imshow(img)
 	# 	plt.show()
 
-with open(image_bin_path, 'rb') as f:
-	f.seek(idx * self.size_per_image)
-	data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
+# with open(image_bin_path, 'rb') as f:
+# 	f.seek(idx * self.size_per_image)
+# 	data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
 

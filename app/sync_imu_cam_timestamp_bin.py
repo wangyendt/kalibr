@@ -13,12 +13,13 @@ import os
 import pandas as pd
 
 if len(sys.argv) < 1:
-	print(f'Usage: python3 {__file__} "path/to/dataset"')
+	print(f'Usage: python3 {__file__} "path/to/dataset" which_cam[0/1]')
 	exit(0)
 dataset_root = sys.argv[1]
+which_cam = sys.argv[2]
 header = '#timestamp [ns]'
 imu_file = os.path.join(dataset_root, 'data.csv')
-cam_file = os.path.join(dataset_root, '0_save_timestamp.txt')
+cam_file = os.path.join(dataset_root, f'{which_cam}_save_timestamp.txt')
 imu_data = pd.read_csv(imu_file)
 cam_ts = pd.read_csv(cam_file, header=None)
 imu_data.iloc[:,0] = imu_data.iloc[:,0] - imu_data.iloc[0,0] + cam_ts.iloc[0,0]
