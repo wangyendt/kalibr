@@ -7,6 +7,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <sm/logging.hpp>
 #include <aslam/cameras/GridDetector.hpp>
+#include "TimeUtils.h"
 
 namespace aslam {
 namespace cameras {
@@ -96,8 +97,11 @@ bool GridDetector::findTargetNoTransformation(const cv::Mat & image, const aslam
   // Extract the calibration target corner points
   Eigen::MatrixXd cornerPoints;
   std::vector<bool> validCorners;
+  __TIC__(GridDetector_computeObservation);
   success = _target->computeObservation(image, cornerPoints, validCorners);
+  __TOC__(GridDetector_computeObservation);
 
+  // __TIC__(GridDetector_setall); // 0.005ms
   // Set the image, target, and timestamp regardless of success.
   outObservation.setTarget(_target);
   outObservation.setImage(image);
@@ -108,6 +112,7 @@ bool GridDetector::findTargetNoTransformation(const cv::Mat & image, const aslam
     if (validCorners[i])
       outObservation.updateImagePoint(i, cornerPoints.row(i).transpose());
   }
+  // __TOC__(GridDetector_setall); // 0.005ms
 
   return success;
 }
@@ -116,8 +121,10 @@ bool GridDetector::findTarget(const cv::Mat & image, const aslam::Time & stamp,
     GridCalibrationTargetObservation & outObservation) const{
   sm::kinematics::Transformation trafo;
 
+  __TIC__(GridDetector_findTargetNoTransformation);
   // find calibration target corners
   bool success = findTargetNoTransformation(image, stamp, outObservation);
+  __TOC__(GridDetector_findTargetNoTransformation);
 
   // calculate trafo cam-target
   if (success) {

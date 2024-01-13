@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "apriltags/TagFamily.h"
+#include "LogUtils.h"
 
 /**
 
@@ -95,6 +96,7 @@ void TagFamily::decode(TagDetection& det, unsigned long long rCode) const {
   for (unsigned int id = 0; id < codes.size(); id++) {
     for (unsigned int rot = 0; rot < 4; rot++) {
       int thisHamming = hammingDistance(rCodes[rot], codes[id]);
+      // LOGD("id=%d, rot=%d, rcodes[rot]=%d, codes[id]=%d, thishamming=%d, best=%d",id,rot,rCodes[rot],codes[id], thisHamming, bestHamming);
       if (thisHamming < bestHamming) {
 	bestHamming = thisHamming;
 	bestRotation = rot;

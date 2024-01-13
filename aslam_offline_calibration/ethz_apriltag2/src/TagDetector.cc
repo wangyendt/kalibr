@@ -24,31 +24,38 @@
 
 #include "apriltags/TagDetector.h"
 
-//#define DEBUG_APRIL
+// #define DEBUG_APRIL
 
 #ifdef DEBUG_APRIL
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #endif
 
+#include "TimeUtils.h"
+
 using namespace std;
 
 namespace AprilTags {
 
-  std::vector<TagDetection> TagDetector::extractTags(const cv::Mat& image) {
+  std::vector<TagDetection> TagDetector::extractTags(const cv::Mat& image_) {
+    cv::Mat image_local = image_.clone();
+    // cv::resize(image_local, image_local, cv::Size2d(640, 400));
 
+
+    __TIC__(GridCalibrationTargetAprilgrid_TagDetector_convertToInternalAprilTagsImage);
     // convert to internal AprilTags image (todo: slow, change internally to OpenCV)
-    int width = image.cols;
-    int height = image.rows;
+    int width = image_local.cols;
+    int height = image_local.rows;
     AprilTags::FloatImage fimOrig(width, height);
     int i = 0;
     for (int y=0; y<height; y++) {
       for (int x=0; x<width; x++) {
-        fimOrig.set(x, y, image.data[i]/255.);
+        fimOrig.set(x, y, image_local.data[i]/255.);
         i++;
       }
     }
     std::pair<int,int> opticalCenter(width/2, height/2);
+    __TOC__(GridCalibrationTargetAprilgrid_TagDetector_convertToInternalAprilTagsImage);
 
 #ifdef DEBUG_APRIL
 #if 0
@@ -96,6 +103,7 @@ namespace AprilTags {
 
   //================================================================
   // Step one: preprocess image (convert to grayscale) and low pass if necessary
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step1);
 
   FloatImage fim = fimOrig;
   
@@ -123,12 +131,14 @@ namespace AprilTags {
     std::vector<float> filt = Gaussian::makeGaussianFilter(sigma, filtsz);
     fim.filterFactoredCentered(filt, filt);
   }
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step1);
 
   //================================================================
   // Step two: Compute the local gradient. We store the direction and magnitude.
   // This step is quite sensitve to noise, since a few bad theta estimates will
   // break up segments, causing us to miss Quads. It is useful to do a Gaussian
   // low pass on this step even if we don't want it for encoding.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step2);
 
   FloatImage fimSeg;
   if (segSigma > 0) {
@@ -149,11 +159,12 @@ namespace AprilTags {
   FloatImage fimMag(fimSeg.getWidth(), fimSeg.getHeight());
   
 
+  int step = 3;
   #pragma omp parallel for
-  for (int y = 1; y < fimSeg.getHeight()-1; y++) {
-    for (int x = 1; x < fimSeg.getWidth()-1; x++) {
-      float Ix = fimSeg.get(x+1, y) - fimSeg.get(x-1, y);
-      float Iy = fimSeg.get(x, y+1) - fimSeg.get(x, y-1);
+  for (int y = step; y < fimSeg.getHeight()-step; y++) {
+    for (int x = step; x < fimSeg.getWidth()-step; x++) {
+      float Ix = fimSeg.get(x+step, y) - fimSeg.get(x-step, y);
+      float Iy = fimSeg.get(x, y+step) - fimSeg.get(x, y-step);
 
       float mag = Ix*Ix + Iy*Iy;
 #if 0 // kaess: fast version, but maybe less accurate?
@@ -175,7 +186,7 @@ namespace AprilTags {
     for (int y=0; y<height_; y++) {
       for (int x=0; x<width_; x++) {
         cv::Vec3b v;
-        //        float vf = fimMag.get(x,y);
+        // float vf = fimMag.get(x,y);
         float vf = fimOrig.get(x,y);
         int val = (int)(vf * 255.);
         if ((val & 0xffff00) != 0) {printf("problem... %i\n", val);}
@@ -187,11 +198,13 @@ namespace AprilTags {
     }
   }
 #endif
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step2);
 
   //================================================================
   // Step three. Extract edges by grouping pixels with similar
   // thetas together. This is a greedy algorithm: we start with
   // the most similar pixels.  We use 4-connectivity.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step3);
   UnionFindSimple uf(fimSeg.getWidth()*fimSeg.getHeight());
   
   vector<Edge> edges(width*height*4);
@@ -235,39 +248,49 @@ namespace AprilTags {
     std::stable_sort(edges.begin(), edges.end());
     Edge::mergeEdges(edges,uf,tmin,tmax,mmin,mmax);
   }
+  LOGD("step 3: height: %d, width: %d, w*h: %ld, nedges: %ld", height, width, height*width, edges.size());
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step3);
           
   //================================================================
   // Step four: Loop over the pixels again, collecting statistics for each cluster.
   // We will soon fit lines (segments) to these points.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step4);
 
   map<int, vector<XYWeight> > clusters;
+  int c4 = 0;
   for (int y = 0; y+1 < fimSeg.getHeight(); y++) {
     for (int x = 0; x+1 < fimSeg.getWidth(); x++) {
       if (uf.getSetSize(y*fimSeg.getWidth()+x) < Segment::minimumSegmentSize)
-	continue;
+	      continue;
+      c4++;
 
       int rep = (int) uf.getRepresentative(y*fimSeg.getWidth()+x);
      
       map<int, vector<XYWeight> >::iterator it = clusters.find(rep);
       if ( it == clusters.end() ) {
-	clusters[rep] = vector<XYWeight>();
-	it = clusters.find(rep);
+        clusters[rep] = vector<XYWeight>();
+        it = clusters.find(rep);
       }
       vector<XYWeight> &points = it->second;
       points.push_back(XYWeight(x,y,fimMag.get(x,y)));
     }
   }
+  LOGD("step 4: fimSeg.h: %d, fimSeg.w: %d, w*h: %ld, c4: %ld", fimSeg.getHeight(), fimSeg.getWidth(), (long)fimSeg.getHeight() * (long)fimSeg.getWidth(), c4);
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step4);
 
   //================================================================
   // Step five: Loop over the clusters, fitting lines (which we call Segments).
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step5);
   std::vector<Segment> segments; //used in Step six
   std::map<int, std::vector<XYWeight> >::const_iterator clustersItr;
+  int c5 = 0;
   for (clustersItr = clusters.begin(); clustersItr != clusters.end(); clustersItr++) {
     std::vector<XYWeight> points = clustersItr->second;
     GLineSegment2D gseg = GLineSegment2D::lsqFitXYW(points);
-
+    c5++;
     // filter short lines
     float length = MathUtil::distance2D(gseg.getP0(), gseg.getP1());
+    // LOGD("step 5: cluster: %d, length: %f, min_len: %f", c5, length, Segment::minimumLineLength);
     if (length < Segment::minimumLineLength)
       continue;
 
@@ -323,22 +346,24 @@ namespace AprilTags {
   }
 
 #ifdef DEBUG_APRIL
-#if 0
+#if 1
   {
     for (vector<Segment>::iterator it = segments.begin(); it!=segments.end(); it++) {
       long int r = random();
       cv::line(image,
                cv::Point2f(it->getX0(), it->getY0()),
                cv::Point2f(it->getX1(), it->getY1()),
-               cv::Scalar(r%0xff,(r%0xff00)>>8,(r%0xff0000)>>16,0) );
+               cv::Scalar(r%0xff,(r%0xff00)>>8,(r%0xff0000)>>16,0), 1*width/640);
     }
   }
 #endif
 #endif
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step5);
 
   // Step six: For each segment, find segments that begin where this segment ends.
   // (We will chain segments together next...) The gridder accelerates the search by
   // building (essentially) a 2D hash table.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step6);
   Gridder<Segment> gridder(0,0,width,height,10);
   
   // add every segment to the hash table according to the position of the segment's
@@ -383,11 +408,18 @@ namespace AprilTags {
       // everything's OK, this child is a reasonable successor.
       parentseg.children.push_back(&child);
     }
+    // LOGD("step 6: segment: %d, parentseg.children -- %ld", i, parentseg.children.size());
   }
+  LOGD("step 6: segments.size -- %ld", segments.size());
+
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step6);
 
   //================================================================
   // Step seven: Search all connected segments to see if any form a loop of length 4.
   // Add those to the quads list.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step7);
+
+  LOGD("step 7: segments.size -- %ld", segments.size());
   vector<Quad> quads;
   
   vector<Segment*> tmp(5);
@@ -396,7 +428,7 @@ namespace AprilTags {
     Quad::search(fimOrig, tmp, segments[i], 0, quads, opticalCenter);
   }
 
-#ifdef DEBUG_APRIL
+#if 0 //def DEBUG_APRIL
   {
     for (unsigned int qi = 0; qi < quads.size(); qi++ ) {
       Quad &quad = quads[qi];
@@ -418,14 +450,18 @@ namespace AprilTags {
       cv::circle(image, cv::Point2f(p3.first, p3.second), 3, cv::Scalar(0,255,0,0), 1);
       cv::circle(image, cv::Point2f(p4.first, p4.second), 3, cv::Scalar(0,255,0,0), 1);
     }
-    cv::imshow("debug_april", image);
+    LOGD("_______________________________");
+    // cv::imshow("debug_april", image);
   }
 #endif
+  LOGD("step 7. quads.size()=%d", quads.size());
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step7);
 
   //================================================================
   // Step eight. Decode the quads. For each quad, we first estimate a
   // threshold color to decide between 0 and 1. Then, we read off the
   // bits and see if they make sense.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step8);
 
   std::vector<TagDetection> detections;
 
@@ -439,17 +475,19 @@ namespace AprilTags {
     for (int iy = -1; iy <= dd; iy++) {
       float y = (iy + 0.5f) / dd;
       for (int ix = -1; ix <= dd; ix++) {
-	float x = (ix + 0.5f) / dd;
-	std::pair<float,float> pxy = quad.interpolate01(x, y);
-	int irx = (int) (pxy.first + 0.5);
-	int iry = (int) (pxy.second + 0.5);
-	if (irx < 0 || irx >= width || iry < 0 || iry >= height)
-	  continue;
-	float v = fim.get(irx, iry);
-	if (iy == -1 || iy == dd || ix == -1 || ix == dd)
-	  whiteModel.addObservation(x, y, v);
-	else if (iy == 0 || iy == (dd-1) || ix == 0 || ix == (dd-1))
-	  blackModel.addObservation(x, y, v);
+        float x = (ix + 0.5f) / dd;
+        std::pair<float,float> pxy = quad.interpolate01(x, y);
+        int irx = (int) (pxy.first + 0.5);
+        int iry = (int) (pxy.second + 0.5);
+        if (irx < 0 || irx >= width || iry < 0 || iry >= height){
+          LOGD("bad1: qi:%d, iy:%d, ix:%d", qi, iy, ix);
+          continue;
+        }
+        float v = fim.get(irx, iry);
+        if (iy == -1 || iy == dd || ix == -1 || ix == dd)
+          whiteModel.addObservation(x, y, v);
+        else if (iy == 0 || iy == (dd-1) || ix == 0 || ix == (dd-1))
+          blackModel.addObservation(x, y, v);
       }
     }
 
@@ -458,21 +496,23 @@ namespace AprilTags {
     for ( int iy = thisTagFamily.dimension-1; iy >= 0; iy-- ) {
       float y = (thisTagFamily.blackBorder + iy + 0.5f) / dd;
       for (int ix = 0; ix < thisTagFamily.dimension; ix++ ) {
-	float x = (thisTagFamily.blackBorder + ix + 0.5f) / dd;
-	std::pair<float,float> pxy = quad.interpolate01(x, y);
-	int irx = (int) (pxy.first + 0.5);
-	int iry = (int) (pxy.second + 0.5);
-	if (irx < 0 || irx >= width || iry < 0 || iry >= height) {
-	  // cout << "*** bad:  irx=" << irx << "  iry=" << iry << endl;
-	  bad = true;
-	  continue;
-	}
-	float threshold = (blackModel.interpolate(x,y) + whiteModel.interpolate(x,y)) * 0.5f;
-	float v = fim.get(irx, iry);
-	tagCode = tagCode << 1;
-	if ( v > threshold)
-	  tagCode |= 1;
-#ifdef DEBUG_APRIL
+        float x = (thisTagFamily.blackBorder + ix + 0.5f) / dd;
+        std::pair<float,float> pxy = quad.interpolate01(x, y);
+        int irx = (int) (pxy.first + 0.5);
+        int iry = (int) (pxy.second + 0.5);
+        if (irx < 0 || irx >= width || iry < 0 || iry >= height) {
+          // cout << "*** bad:  irx=" << irx << "  iry=" << iry << endl;
+          bad = true;
+          LOGD("bad2: qi:%d, iy:%d, ix:%d", qi, iy, ix);
+          continue;
+        }
+        float threshold = (blackModel.interpolate(x,y) + whiteModel.interpolate(x,y)) * 0.5f;
+        float v = fim.get(irx, iry);
+        tagCode = tagCode << 1;
+        // LOGD("v: %f, threshold: %f", v, threshold);
+        if ( v > threshold)
+          tagCode |= 1;
+#if 0 //def DEBUG_APRIL
         {
           if (v>threshold)
             cv::circle(image, cv::Point2f(irx, iry), 1, cv::Scalar(0,0,255,0), 2);
@@ -511,29 +551,32 @@ namespace AprilTags {
       int bestRot = -1;
       float bestDist = FLT_MAX;
       for ( int i=0; i<4; i++ ) {
-	float const dist = AprilTags::MathUtil::distance2D(bottomLeft, quad.quadPoints[i]);
-	if ( dist < bestDist ) {
-	  bestDist = dist;
-	  bestRot = i;
-	}
+        float const dist = AprilTags::MathUtil::distance2D(bottomLeft, quad.quadPoints[i]);
+        if ( dist < bestDist ) {
+          bestDist = dist;
+          bestRot = i;
+        }
       }
 
       for (int i=0; i< 4; i++)
-	thisTagDetection.p[i] = quad.quadPoints[(i+bestRot) % 4];
+	      thisTagDetection.p[i] = quad.quadPoints[(i+bestRot) % 4];
 
+      // LOGD("good:%d",thisTagDetection.good);
       if (thisTagDetection.good) {
-	thisTagDetection.cxy = quad.interpolate01(0.5f, 0.5f);
-	thisTagDetection.observedPerimeter = quad.observedPerimeter;
-	detections.push_back(thisTagDetection);
+        thisTagDetection.cxy = quad.interpolate01(0.5f, 0.5f);
+        thisTagDetection.observedPerimeter = quad.observedPerimeter;
+        detections.push_back(thisTagDetection);
       }
     }
   }
+  LOGD("step 8. detections.size()=%d", detections.size());
 
-#ifdef DEBUG_APRIL
-  {
-    cv::imshow("debug_april", image);
-  }
-#endif
+// #ifdef DEBUG_APRIL
+//   {
+//     cv::imshow("debug_april", image);
+//   }
+// #endif
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step8);
 
   //================================================================
   //Step nine: Some quads may be detected more than once, due to
@@ -541,6 +584,7 @@ namespace AprilTags {
   //broken lines. When two quads (with the same id) overlap, we will
   //keep the one with the lowest error, and if the error is the same,
   //the one with the greatest observed perimeter.
+  __TIC__(GridCalibrationTargetAprilgrid_TagDetector_Step9);
 
   std::vector<TagDetection> goodDetections;
 
@@ -576,9 +620,20 @@ namespace AprilTags {
        goodDetections.push_back(thisTagDetection);
 
   }
+  __TOC__(GridCalibrationTargetAprilgrid_TagDetector_Step9);
 
-  //cout << "AprilTags: edges=" << nEdges << " clusters=" << clusters.size() << " segments=" << segments.size()
+  // cout << "AprilTags: edges=" << nEdges << " clusters=" << clusters.size() << " segments=" << segments.size()
   //     << " quads=" << quads.size() << " detections=" << detections.size() << " unique tags=" << goodDetections.size() << endl;
+
+#ifdef DEBUG_APRIL
+  {
+    cv::putText(image, "len(goodDetections): "+std::to_string(goodDetections.size()), cv::Point2d(30,50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 4);
+    cv::namedWindow("debug_april", cv::WINDOW_NORMAL);
+    cv::resizeWindow("debug_april", 1920, 1200);
+    cv::imshow("debug_april", image);
+    cv::waitKey(100);
+  }
+#endif
 
   return goodDetections;
 }

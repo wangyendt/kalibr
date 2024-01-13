@@ -23,7 +23,9 @@ def multicoreExtractionWrapper(dataset, detector, taskq, resultq, clearImages, n
         if noTransformation:
             success, obs = detector.findTargetNoTransformation(stamp, np.array(image))
         else:
+            # ts = time.time()
             success, obs = detector.findTarget(stamp, np.array(image))
+            # print(f'{time.time() - ts}s for find Target')
             
         if clearImages:
             obs.clearImage()
@@ -57,6 +59,7 @@ def extractCornersFromDataset(dataset, detector, multithreading=False, numProces
             # ts = time.time()
 
             plist=list()
+            # numProcesses = 1
             for pidx in range(0, numProcesses):
                 detector_copy = copy.copy(detector)
                 p = multiprocessing.Process(target=multicoreExtractionWrapper, args=(dataset, detector_copy, taskq, resultq, clearImages, noTransformation, ))

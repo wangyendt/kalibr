@@ -9,6 +9,7 @@ import gc
 import numpy as np
 import multiprocessing
 import sys
+import time
 
 # make numpy print prettier
 np.set_printoptions(suppress=True)
@@ -99,39 +100,52 @@ class IccCalibrator(object):
         ## initialize camera chain
         ############################################
         #estimate the timeshift for all cameras to the main imu
+        ts = time.time()
         self.noTimeCalibration = noTimeCalibration
         if not noTimeCalibration:
             for cam in self.CameraChain.camList:
                 cam.findTimeshiftCameraImuPrior(self.ImuList[0], verbose)
+        print(f'\033[33mestimate the timeshift for all cameras to the main imu: {time.time()-ts:.3f}s\033[0m')
         
         #obtain orientation prior between main imu and camera chain (if no external input provided)
         #and initial estimate for the direction of gravity
+        ts = time.time()
         self.CameraChain.findOrientationPriorCameraChainToImu(self.ImuList[0])
         estimatedGravity = self.CameraChain.getEstimatedGravity()
+        print(f'\033[33mobtain orientation prior between main imu and camera chain: {time.time()-ts:.3f}s\033[0m')
 
         ############################################
         ## init optimization problem
         ############################################
         #initialize a pose spline using the camera poses in the camera chain
+        ts = time.time()
         poseSpline = self.CameraChain.initializePoseSplineFromCameraChain(splineOrder, poseKnotsPerSecond, timeOffsetPadding)
         
         # Initialize bias splines for all IMUs
         for imu in self.ImuList:
             imu.initBiasSplines(poseSpline, splineOrder, biasKnotsPerSecond)
+        print(f'\033[33mInitialize bias splines for all IMUs: {time.time()-ts:.3f}s\033[0m')
         
         # Now I can build the problem
+        ts = time.time()
         problem = inc.CalibrationOptimizationProblem()
+        print(f'\033[33mNow I can build the problem: {time.time()-ts:.3f}s\033[0m')
 
         # Initialize all design variables.
+        ts = time.time()
         self.initDesignVariables(problem, poseSpline, noTimeCalibration, noChainExtrinsics, initialGravityEstimate = estimatedGravity)
+        print(f'\033[33mInitialize all design variables: {time.time()-ts:.3f}s\033[0m')
         
         ############################################
         ## add error terms
         ############################################
         #Add calibration target reprojection error terms for all camera in chain
+        ts = time.time()
         self.CameraChain.addCameraChainErrorTerms(problem, self.poseDv, blakeZissermanDf=blakeZisserCam, timeOffsetPadding=timeOffsetPadding)
+        print(f'\033[33mAdd calibration target reprojection error terms for all camera in chain: {time.time()-ts:.3f}s\033[0m')
         
         # Initialize IMU error terms.
+        ts = time.time()
         for imu in self.ImuList:
             imu.addAccelerometerErrorTerms(problem, self.poseDv, self.gravityExpression, mSigma=huberAccel, accelNoiseScale=accelNoiseScale)
             imu.addGyroscopeErrorTerms(problem, self.poseDv, mSigma=huberGyro, gyroNoiseScale=gyroNoiseScale, g_w=self.gravityExpression)
@@ -139,13 +153,18 @@ class IccCalibrator(object):
             # Add the bias motion terms.
             if doBiasMotionError:
                 imu.addBiasMotionTerms(problem)
+        print(f'\033[33mInitialize IMU error terms: {time.time()-ts:.3f}s\033[0m')
             
         # Add the pose motion terms.
+        ts = time.time()
         if doPoseMotionError:
             self.addPoseMotionTerms(problem, mrTranslationVariance, mrRotationVariance)
+        print(f'\033[33mAdd the pose motion terms: {time.time()-ts:.3f}s\033[0m')
         
         # Add a gravity prior
+        ts = time.time()
         self.problem = problem
+        print(f'\033[33mAdd a gravity prior: {time.time()-ts:.3f}s\033[0m')
 
 
     def optimize(self, options=None, maxIterations=30, recoverCov=False):

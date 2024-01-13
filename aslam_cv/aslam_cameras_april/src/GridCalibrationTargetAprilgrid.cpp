@@ -8,6 +8,7 @@
 #include <sm/assert_macros.hpp>
 #include <sm/logging.hpp>
 #include <aslam/cameras/GridCalibrationTargetAprilgrid.hpp>
+#include "TimeUtils.h"
 
 namespace aslam {
 namespace cameras {
@@ -103,7 +104,9 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
   bool success = true;
 
   // detect the tags
+  __TIC__(GridDetector_GridCalibrationTargetAprilgrid_extractTags);
   std::vector<AprilTags::TagDetection> detections = _tagDetector->extractTags(image);
+  __TOC__(GridDetector_GridCalibrationTargetAprilgrid_extractTags);
 
   /* handle the case in which a tag is identified but not all tag
    * corners are in the image (all data bits in image but border
