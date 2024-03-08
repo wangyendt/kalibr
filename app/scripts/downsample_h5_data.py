@@ -7,10 +7,12 @@ import numpy as np
 import shutil
 import pandas as pd
 
-source_dir = '/media/psf/work/data/ost_calibration/imu_to_vpcam/20240112-120Hz-mercury-1920x1200-32_33-naked-cam2imu_fast-test1'
-source_freq = re.findall('-(.*?)Hz-', os.path.basename(source_dir))[0]
+source_dir = '/media/psf/work/data/ost_calibration/imu_to_vpcam/20240113-120Hz-mercury-1920x1200-32_33-naked-fix-cam2imu_fast-final-test12'
+source_dir = '/media/psf/work/data/ost_calibration/imu_to_vpcam/20240113-120_of_120Hz-mercury-1920x1200-32_33-naked-fix-cam2imu_fast-final-test10'
+source_freq = re.findall('-(.*?)_of.*?Hz-', os.path.basename(source_dir))[0]
 # print(source_freq)
 target_freq = [30, 60, 90, 120, 150]
+print(f'{source_dir=}')
 
 for freq in target_freq:
 	if int(source_freq) <= freq:
@@ -33,7 +35,7 @@ for freq in target_freq:
 
 	img_timestamp_1_path = os.path.join(source_dir, '1_save_timestamp.txt')
 	if os.path.exists(img_timestamp_1_path):
-		img_timestamp_1_data = pd.read_csv(img_timestamp_0_path, header=None)[::step]
+		img_timestamp_1_data = pd.read_csv(img_timestamp_1_path, header=None)[::step]
 		img_timestamp_1_data.to_csv(os.path.join(target_dir, '1_save_timestamp.txt'), header=None, index=False)
 		print(pd.read_csv(img_timestamp_1_path, header=None).shape)
 		print(pd.read_csv(img_timestamp_1_path, header=None)[::step].shape)
@@ -42,9 +44,11 @@ for freq in target_freq:
 		os.path.join(source_dir, 'data.csv'),
 		os.path.join(target_dir, 'data.csv'),
 	)
-	for h5_file in ('0_img_640x400.h5', '1_img_640x400.h5'):
+	# for h5_file in ('0_img_640x400.h5', '1_img_640x400.h5'):
+	for h5_file in ('0_img_1920x1200.h5',):#, '1_img_640x400.h5'):
 		source_h5_file = os.path.join(source_dir, h5_file)
 		if not os.path.exists(source_h5_file): continue
+		print(f'{source_h5_file=}')
 		with h5py.File(source_h5_file, 'r') as h_src:
 			images = h_src['images']
 			N = h_src.attrs['num_images']
@@ -64,5 +68,5 @@ for freq in target_freq:
 					data = images[i].squeeze()
 					dset[(i+1) // step] = data
 					# print(i, i//step)
-				print(cnt)
+				print(f'{cnt=}')
 
