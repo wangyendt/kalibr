@@ -285,7 +285,7 @@ class IccCamera():
             sm.logDebug("dT: {0}".format(dT))
         
         #store the timeshift (t_imu = t_cam + timeshiftCamToImuPrior)
-        self.timeshiftCamToImuPrior = shift
+        self.timeshiftCamToImuPrior = shift # 4.201910595935335 # shift
         
         print("  Time shift camera to imu (t_imu = t_cam + shift):")
         print(self.timeshiftCamToImuPrior)

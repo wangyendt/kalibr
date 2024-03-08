@@ -66,6 +66,7 @@ install(TARGETS ${${PROJECT_NAME}_TARGETS}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+# catkin_python_exe
 catkin_install_python(
   PROGRAMS
     python/kalibr_bagcreater

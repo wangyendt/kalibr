@@ -3,6 +3,7 @@ print("importing libraries")
 import sm
 import kalibr_common as kc
 from kalibr_imu_camera_calibration import *
+from kalibr_utils.kalibr_time_utils import *
 
 import numpy as np
 import argparse
