@@ -355,6 +355,7 @@ class IccCamera():
         allReprojectionErrors = list()
         error_t = self.camera.reprojectionErrorType
         
+        t_min, t_max = poseSplineDv.spline().t_min(), poseSplineDv.spline().t_max()
         for obs in self.targetObservations:
             # Build a transformation expression for the time.
             frameTime = self.cameraTimeToImuTimeDv.toExpression() + obs.time().toSec() + self.timeshiftCamToImuPrior
@@ -362,7 +363,7 @@ class IccCamera():
             
             #as we are applying an initial time shift outside the optimization so 
             #we need to make sure that we dont add data outside the spline definition
-            if frameTimeScalar <= poseSplineDv.spline().t_min() or frameTimeScalar >= poseSplineDv.spline().t_max():
+            if frameTimeScalar <= t_min or frameTimeScalar >= t_max:
                 continue
             
             T_w_b = poseSplineDv.transformationAtTime(frameTime, timeOffsetPadding, timeOffsetPadding)
@@ -706,9 +707,10 @@ class IccImu(object):
         else:
             mest = aopt.NoMEstimator()
             
+        t_min, t_max = poseSplineDv.spline().t_min(), poseSplineDv.spline().t_max()
         for im in self.imuData:
             tk = im.stamp.toSec() + self.timeOffset
-            if tk > poseSplineDv.spline().t_min() and tk < poseSplineDv.spline().t_max():
+            if tk > t_min and tk < t_max:
                 C_b_w = poseSplineDv.orientation(tk).inverse()
                 a_w = poseSplineDv.linearAcceleration(tk)
                 b_i = self.accelBiasDv.toEuclideanExpression(tk,0)
@@ -748,9 +750,10 @@ class IccImu(object):
         else:
             mest = aopt.NoMEstimator()
             
+        t_min, t_max = poseSplineDv.spline().t_min(), poseSplineDv.spline().t_max()
         for im in self.imuData:
             tk = im.stamp.toSec() + self.timeOffset
-            if tk > poseSplineDv.spline().t_min() and tk < poseSplineDv.spline().t_max():
+            if tk > t_min and tk < t_max:
                 # GyroscopeError(measurement, invR, angularVelocity, bias)
                 w_b = poseSplineDv.angularVelocityBodyFrame(tk)
                 b_i = self.gyroBiasDv.toEuclideanExpression(tk,0)
