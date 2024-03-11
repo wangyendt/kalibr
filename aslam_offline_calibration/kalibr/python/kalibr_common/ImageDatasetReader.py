@@ -209,7 +209,7 @@ class BagImageDatasetReader(object):
     return (timestamp, img_data)
 
 
-class BinImageDatasetReaderIterator:
+class H5ImageDatasetReaderIterator:
   def __init__(self, dataset, indices=None):
     self.dataset = dataset
     if indices is None:
@@ -231,17 +231,17 @@ class BinImageDatasetReaderIterator:
     return self.dataset.getImage(idx)
 
 
-class BinImageDatasetReader:
-  def __init__(self, binfile, timestampfile, resolution, bin_from_to_in_seconds, bin_freq, perform_synchronization=False):
-    self.binfile = binfile
+class H5ImageDatasetReader:
+  def __init__(self, h5file, timestampfile, h5_from_to_in_seconds, h5_freq, perform_synchronization=False):
+    self.h5file = h5file
     self.timestampfile = timestampfile
     self.perform_synchronization = perform_synchronization
     self.timestamp = np.loadtxt(self.timestampfile)
     self.topic = '/cam0/image_raw'
     self.indices = np.arange(len(self.timestamp))
-    self.w, self.h, self.c = resolution # 1920, 1200, 1
-    self.size_per_image = self.w * self.h * self.c
-    with h5py.File(self.binfile, 'r') as hdf5_file:
+    # self.w, self.h, self.c = resolution # 1920, 1200, 1
+    # self.size_per_image = self.w * self.h * self.c
+    with h5py.File(self.h5file, 'r') as hdf5_file:
       width = hdf5_file.attrs['width']
       height = hdf5_file.attrs['height']
       channels = hdf5_file.attrs['channels']
@@ -264,7 +264,7 @@ class BinImageDatasetReader:
     return self.readDataset()
 
   def readDataset(self):
-    return BinImageDatasetReaderIterator(self, self.indices)
+    return H5ImageDatasetReaderIterator(self, self.indices)
 
   def getImage(self, idx):
     ts = self.timestamp[idx]
@@ -280,7 +280,7 @@ class BinImageDatasetReader:
     #   f.seek(idx * self.size_per_image)
     #   data = np.frombuffer(f.read(self.size_per_image), dtype=np.uint8).reshape((self.h, self.w, self.c)).squeeze()
     #   return timestamp, data
-    with h5py.File(self.binfile, 'r') as hdf5_file:
+    with h5py.File(self.h5file, 'r') as hdf5_file:
       dset = hdf5_file['images']
       data = dset[idx]
       return timestamp, data

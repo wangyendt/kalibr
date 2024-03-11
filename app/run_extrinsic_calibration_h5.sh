@@ -25,6 +25,7 @@ elif [[ $device == taurus ]]; then
     # cp configs/cam-camchain-mercury-${resolution}_cam0_6mm_20240222.yaml $dataset_root/cam0-camchain-${resolution}.yaml
     # cp configs/cam-camchain-mercury-${resolution}_cam1_6mm_20240222.yaml $dataset_root/cam1-camchain-${resolution}.yaml
     cp configs/cam-camchain-taurus-${resolution}_cam0_6mm_20240228.yaml $dataset_root/cam0-camchain-${resolution}.yaml
+    # cp configs/cam-camchain-taurus-${resolution}_cam0_6mm_20240308.yaml $dataset_root/cam0-camchain-${resolution}.yaml
     # cp configs/cam-camchain-taurus-${resolution}_cam1_6mm_20240227.yaml $dataset_root/cam1-camchain-${resolution}.yaml
     # cp configs/cam-camchain-mercury-${resolution}_cam2_6mm_20240222.yaml $dataset_root/cam2-camchain-${resolution}.yaml
     # cp configs/cam-camchain-not_wearing_glass-640x400_cam0.yaml $dataset_root/cam0-camchain.yaml
@@ -36,7 +37,7 @@ else
 fi
 cp configs/april_6x6.yaml $dataset_root/aprilgrid.yaml
 
-python3 ./sync_imu_cam_timestamp_bin.py "$dataset_root" "$which_cam"
+python3 ./sync_imu_cam_timestamp_h5.py "$dataset_root" "$which_cam"
 
 
 cd $kalibr_dir
@@ -47,10 +48,11 @@ root=$dataset_root
 target=$root/aprilgrid.yaml
 camchain_yaml=$root/cam${which_cam}-camchain-${resolution}.yaml
 imu_yaml=$root/imu.yaml
-bin_file=$root/${which_cam}_img_${resolution}.h5
-bin_timestamp_file=$root/${which_cam}_save_timestamp.txt
+h5_file=$root/${which_cam}_img_${resolution}.h5
+h5_timestamp_file=$root/${which_cam}_save_timestamp.txt
 imu_file=$root/data.csv
 
-rosrun kalibr kalibr_calibrate_imu_camera --target $target --cam $camchain_yaml --imu $imu_yaml --binfile $bin_file --bintimestampfile $bin_timestamp_file --imufile $imu_file --timeoffset-padding 0.03 --export-poses | tee $root/cam2imu_calibration.log # --no-time-calibration --show-extraction # --imu-models scale-misalignment-size-effect # --show-extraction # --bag-from-to 20 400 # --show-extraction
+rosrun kalibr kalibr_calibrate_imu_camera --target $target --cam $camchain_yaml --imu $imu_yaml --h5file $h5_file --h5timestampfile $h5_timestamp_file --imufile $imu_file --timeoffset-padding 0.03 --export-poses --no-time-calibration | tee $root/cam2imu_calibration.log # --no-time-calibration --show-extraction # --imu-models scale-misalignment-size-effect # --show-extraction # --bag-from-to 20 400 # --show-extraction
+# rosrun kalibr kalibr_calibrate_imu_camera --target $target --cam $camchain_yaml --imu $imu_yaml --h5file $h5_file --h5timestampfile $h5_timestamp_file --imufile $imu_file --timeoffset-padding 0.1 --export-poses | tee $root/cam2imu_calibration.log # --no-time-calibration --show-extraction # --imu-models scale-misalignment-size-effect # --show-extraction # --bag-from-to 20 400 # --show-extraction
 
 

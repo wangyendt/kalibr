@@ -70,8 +70,8 @@ def parseArgs():
     #data source
     groupData = parser.add_argument_group('Dataset source')
     groupData.add_argument('--bag', dest='bagfile', nargs=1, help='Ros bag file containing image and imu data (rostopics specified in the yamls)', action=Once) #, required=True)
-    groupData.add_argument('--binfile', dest='binfile', nargs=1, help='The bin file with the data')
-    groupData.add_argument('--bintimestampfile', dest='bintimestampfile', nargs=1, help='The timestamp file with the timestamp')
+    groupData.add_argument('--h5file', dest='h5file', nargs=1, help='The bin file with the data')
+    groupData.add_argument('--h5timestampfile', dest='h5timestampfile', nargs=1, help='The timestamp file with the timestamp')
     groupData.add_argument('--imufile', dest='imufile', nargs=1, help='The imu file with the data')
     groupData.add_argument('--bag-from-to', metavar='bag_from_to', type=float, nargs=2, help='Use the bag data starting from up to this time [s]')
     groupData.add_argument('--bag-freq', metavar='bag_freq', type=float, help='Frequency to extract features at [hz]')

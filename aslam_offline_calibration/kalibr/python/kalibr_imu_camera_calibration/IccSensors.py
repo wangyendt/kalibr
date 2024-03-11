@@ -27,11 +27,11 @@ def initCameraBagDataset(bagfile, topic, from_to, freq, perform_synchronization)
     print("\tNumber of images: {0}".format(len(reader.index)))
     return reader
 
-def initCameraBinDataset(binfile, timestampfile, topic, from_to, freq, perform_synchronization):
+def initCameraH5Dataset(h5file, timestampfile, topic, from_to, freq, perform_synchronization):
     print("Initializing camera rosbag dataset reader:")
-    print("\tDataset:          {0}".format(binfile))
+    print("\tDataset:          {0}".format(h5file))
     print("\tTopic:            {0}".format(topic))
-    reader = kc.BinImageDatasetReader(binfile, timestampfile, (1920, 1200, 1), bin_from_to_in_seconds=from_to, bin_freq=freq, perform_synchronization=perform_synchronization)
+    reader = kc.H5ImageDatasetReader(h5file, timestampfile, h5_from_to_in_seconds=from_to, h5_freq=freq, perform_synchronization=perform_synchronization)
     print("\tNumber of images: {0}".format(len(reader.indices)))
     return reader
 
@@ -438,7 +438,7 @@ class IccCameraChain():
             camConfig = chainConfig.getCameraParameters(camNr)
             # dataset = initCameraBagDataset(parsed.bagfile[0], camConfig.getRosTopic(), \
             #                                parsed.bag_from_to, parsed.bag_freq, parsed.perform_synchronization)
-            dataset = initCameraBinDataset(parsed.binfile[0], parsed.bintimestampfile[0], camConfig.getRosTopic(), parsed.bag_from_to, parsed.bag_freq, parsed.perform_synchronization)
+            dataset = initCameraH5Dataset(parsed.h5file[0], parsed.h5timestampfile[0], camConfig.getRosTopic(), parsed.bag_from_to, parsed.bag_freq, parsed.perform_synchronization)
 
             
             #create the camera
