@@ -239,7 +239,7 @@ def main():
 
     ts_beginning = time.time()
     # bagtag = os.path.splitext(parsed.bagfile[0])[0]
-    bagtag = os.path.splitext(parsed.binfile[0])[0]
+    bagtag = os.path.splitext(parsed.h5file[0])[0]
     yamlFilename = bagtag + "-camchain-imucam.yaml"
     iCal.saveCamChainParametersYaml(yamlFilename)
     print("Results written to:")
